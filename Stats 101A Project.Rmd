@@ -1,0 +1,277 @@
+---
+title: "Stats 101A Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+hap <- read.table("Happiness.txt")
+head(hap)
+attach(hap)
+
+model = lm(Happy~Household+Health+OwnHome+Instagram+Marital+Sex+Age+Children+Education+JobSat+Income+WorkHrs+
+Household:OwnHome+Age:OwnHome+Children:OwnHome+Education:OwnHome+Income:OwnHome+WorkHrs:OwnHome+
+Household:Instagram+Age:Instagram+Children:Instagram+Education:Instagram+Income:Instagram+WorkHrs:Instagram+
+Household:Marital+Age:Marital+Children:Marital+Education:Marital+Income:Marital+WorkHrs:Marital+
+Household:Sex+ Age:Sex+ Children:Sex+ Education:Sex+ Income:Sex+ WorkHrs:Sex+
+Household:JobSat+Age:JobSat+Children:JobSat+Education:JobSat+Income:JobSat+WorkHrs:JobSat+
+Household:Health+Age:Health+Children:Health+Education:Health+Income:Health+WorkHrs:Health)
+summary(model)
+```
+
+
+
+```{r}
+dataRefined = hap
+#Variables that needed cleaning. 
+dataRefined$Household[which(dataRefined$Household == 9)] = NA
+summary(lm(dataRefined[complete.cases(dataRefined$Household),]$Happy~ dataRefined[complete.cases(dataRefined$Household),]$Household)) #significant
+
+dataRefined$Age[which((dataRefined$Age == 99)| (dataRefined$Age == 98))] = NA
+summary(lm(dataRefined[complete.cases(dataRefined$Age),]$Happy~ dataRefined[complete.cases(dataRefined$Age),]$Age)) #NOT
+
+dataRefined$Children[which(dataRefined$Children == 9)] = NA
+summary(lm(dataRefined[complete.cases(dataRefined$Children),]$Happy~ dataRefined[complete.cases(dataRefined$Children),]$Children)) #significant
+
+dataRefined$OwnHome[which((dataRefined$OwnHome == 8) |(dataRefined$OwnHome == 0)| (dataRefined$OwnHome == 9))] = NA  
+summary(lm(dataRefined[complete.cases(dataRefined$OwnHome),]$Happy~ dataRefined[complete.cases(dataRefined$OwnHome),]$OwnHome)) #NOT
+
+dataRefined$Instagram[which(dataRefined$Instagram == 8 |dataRefined$Instagram == 0| dataRefined$Instagram == 9)] = NA
+summary(lm(dataRefined[complete.cases(dataRefined$Instagram),]$Happy~ dataRefined[complete.cases(dataRefined$Instagram),]$Instagram)) #significant
+
+dataRefined$Marital[which(dataRefined$Marital == 9)] = NA
+summary(lm(dataRefined[complete.cases(dataRefined$Marital),]$Happy~ dataRefined[complete.cases(dataRefined$Marital),]$Marital)) #significant
+
+dataRefined$Education[which(dataRefined$Education==97|dataRefined$Education==98|dataRefined$Education==99)]=NA
+summary(lm(dataRefined[complete.cases(dataRefined$Education),]$Happy~ dataRefined[complete.cases(dataRefined$Education),]$Education)) #significant
+
+dataRefined$JobSat[which(dataRefined$JobSat == 9|dataRefined$JobSat == 8)] = NA
+summary(lm(dataRefined[complete.cases(dataRefined$JobSat),]$Happy~ dataRefined[complete.cases(dataRefined$JobSat),]$JobSat)) #significant
+
+dataRefined$JobSat[which(dataRefined$JobSat == 0)] = 4
+
+dataRefined$Income[which(dataRefined$Income == 999998 | dataRefined$Income == 999999)]= NA
+
+dataRefined$Income[which(dataRefined$Income == 1)]= NA
+
+summary(lm(dataRefined[complete.cases(dataRefined$Income),]$Happy~ dataRefined[complete.cases(dataRefined$Income),]$Income)) #significant
+
+dataRefined$WorkHrs[which(dataRefined$WorkHrs == -1 | dataRefined$WorkHrs == 998 | dataRefined$WorkHrs == 999)] = NA 
+summary(lm(dataRefined[complete.cases(dataRefined$WorkHrs),]$Happy~ dataRefined[complete.cases(dataRefined$WorkHrs),]$WorkHrs)) #significant
+
+
+dataRefined$Happy[which(dataRefined$Happy == 0 | dataRefined$Happy==9|dataRefined$Happy==8)] = NA
+
+summary(lm(dataRefined$Happy~dataRefined$Sex)) #significant
+
+summary(lm(dataRefined$Happy~dataRefined$Health)) #significant
+
+testdata <- dataRefined[complete.cases(dataRefined),]
+complete.cases(dataRefined$WorkHrs)
+attach(dataRefined)
+
+dataRefined
+testmodel1 <-lm(Happy ~ Household + Health + Instagram + Marital + Sex + Children + Education + JobSat + Income, data= dataRefined)
+pairs(Happy ~ Household + Health + Instagram + Marital + Children + Education + JobSat + Income, data= dataRefined)
+summary(testmodel1)
+plot(testmodel1)
+
+vif(testmodel1)
+
+library(alr3)
+inverseResponsePlot(testmodel1)
+```
+
+```{r}
+testmodel2 <- lm((Happy)^1.153755~ Household + Health + Instagram + Marital + Children + Education + JobSat + Income, data = dataRefined)
+summary(testmodel2) 
+plot(testmodel2)
+
+
+pairs((Happy)^1.153755~Household + Health + Instagram + Marital + Sex + Children + Education + JobSat + Income, data = dataRefined)
+
+#R^2 of 0.097, higher than other models, F stat says model is significant
+
+testmodel3 <- lm(log(Happy)~Household + Health + Instagram + Marital + Children + JobSat + Income, data = dataRefined)
+plot(testmodel3)
+summary(testmodel3)
+
+summary(lm(Happy~Household+OwnHome+Marital+Sex+Income+Education+JobSat))
+```
+
+```{r}
+library(leaps)
+X <- cbind(Household,Health,OwnHome,Instagram,Education,Marital,Sex, Age,Children,JobSat,Income, WorkHrs)
+b <- regsubsets(as.matrix(X),Happy)
+rs <- summary(b)
+rs$adjr2
+rs
+par(mfrow=c(1,1))
+plot(1:8,rs$adjr2,xlab="Subset Size",ylab="Adjusted R-squared")
+
+backAIC <- step(testmodel1,direction="backward", data=dataRefined)
+
+##Marital, JobSat, Income
+```
+
+
+```{r}
+mod1 <- lm(Happy~Marital)
+mod2 <- lm(Happy~Marital+Health)
+mod3<-lm(Happy~Marital+Health+Income)
+mod4<-lm(Happy~Marital+Health+Income+Children)
+mod5<-lm(Happy~Marital+Health+Income+Children+Education)
+mod6<-lm(Happy~Marital+Health+Income+Children+Education+Instagram)
+mod7<-lm(Happy~Marital+Health+Income+Children+Education+Instagram+Household)
+mod8<-lm(Happy~Marital+Health+Income+Children+Education+Instagram+Household+JobSat)
+mod9<-lm(Happy~Marital+Health+Income+Children+Education+Instagram+Household+JobSat+Sex)
+mod10<-testmodel1
+
+radj<-rs$adjr2
+
+#Subset size=1
+n <- length(mod1$residuals); p <- 1
+#Calculate AIC
+AIC1 <- extractAIC(mod1,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc1 <- extractAIC(mod1,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC1 <-extractAIC(mod1,k=log(n))[2]
+
+#Subset size=2
+p <- 2
+#Calculate AIC
+AIC2 <- extractAIC(mod2,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc2 <- extractAIC(mod2,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC2 <-extractAIC(mod2,k=log(n))[2]
+
+#Subset size=3
+p <- 3
+#Calculate AIC
+AIC3 <- extractAIC(mod3,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc3 <- extractAIC(mod3,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC3 <-extractAIC(mod3,k=log(n))[2]
+
+#Subset size=4
+n <- length(mod4$residuals); p <- 4
+#Calculate AIC
+AIC4 <- extractAIC(mod4,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc4 <- extractAIC(mod4,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC4 <-extractAIC(mod4,k=log(n))[2]
+
+#Subset size=5
+p <- 5
+#Calculate AIC
+AIC5 <- extractAIC(mod5,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc5 <- extractAIC(mod5,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC5 <-extractAIC(mod5,k=log(n))[2]
+
+#Subset size=6
+p <- 6
+#Calculate AIC
+AIC6 <- extractAIC(mod6,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc6 <- extractAIC(mod6,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC6 <-extractAIC(mod6,k=log(n))[2]
+
+#Subset size=7
+p <- 7
+#Calculate AIC
+AIC7 <- extractAIC(mod7,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc7 <- extractAIC(mod7,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC7 <-extractAIC(mod7,k=log(n))[2]
+
+#Subset size=8
+p <- 8
+#Calculate AIC
+AIC8 <- extractAIC(mod8,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc8 <- extractAIC(mod8,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC8 <-extractAIC(mod8,k=log(n))[2]
+
+#Subset size=9
+p <- 9
+#Calculate AIC
+AIC9 <- extractAIC(mod9,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc9 <- extractAIC(mod9,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC9 <-extractAIC(mod9,k=log(n))[2]
+
+#Subset size=9
+p <- 9
+#Calculate AIC
+AIC10 <- extractAIC(mod10,k=2)[2]
+#Calculate AICc = AIC + 2k(k+1)/(n-k-1)
+AICc10 <- extractAIC(mod10,k=2)[2]+2*(p+2)*(p+3)/(n-p-1)
+#Calculate BIC
+BIC10 <-extractAIC(mod10,k=log(n))[2]
+
+AIC <- c(AIC1,AIC2,AIC3,AIC4,AIC5, AIC6,AIC7,AIC8,AIC9,AIC10)
+AICc <- c(AICc1,AICc2,AICc3,AICc4,AICc5,AICc6,AICc7,AICc8,AICc9,AICc10)
+BIC <- c(BIC1,BIC2,BIC3,BIC4,BIC5, BIC6,BIC7,BIC8,BIC9,BIC10)
+
+data.frame(Size=1:10, Radj2=radj,AIC=AIC, AICc=AICc, BIC=BIC)
+
+##all say 8 variables is ideal
+```
+
+```{r}
+summary(mod8)
+#all variables are significant
+plot(mod8)
+```
+
+
+```{r}
+new.dataRefined<-dataRefined[,c(1,3,5,6,9,10,11,13)]
+
+new.dataRefined2<-dataRefined[,c(1,2,4,5,6,8,9,10,11,12,13)]
+completeData2=new.dataRefined2[complete.cases(new.dataRefined2),]
+goodermodel=lm(Happy~Household+Health+Instagram+Marital+Children)
+
+completeData = new.dataRefined[complete.cases(new.dataRefined),]
+sum(is.na(new.dataRefined))
+sum(complete.cases(new.dataRefined))
+dim(completeData)
+good.model<-lm(Happy ~ Household + OwnHome + Marital + Sex + Education + Income, data= completeData)
+colnames(completeData)
+summary(good.model)
+plot(good.model)
+```
+
+```{r}
+transformations = powerTransform(cbind(Happy,Household,OwnHome,Marital,Sex,Education,Income)~1)
+summary(transformations)
+##A Different Option?
+## box.cox(good.model)
+m1 <- lm(bcPower(Happy,transformations$roundlam)~Household+OwnHome+Marital+Sex+Education+Income)
+summary(m1)
+plot(m1)
+#####
+```
+
+```{r}
+transformedModel = lm(I((completeData$Happy)^.75) ~ I((completeData$Household)^-.33)+I((completeData$OwnHome)^-2)
+                        +log(completeData$Marital)+completeData$Sex+completeData$Education+log(completeData$Income))
+
+summary(transformedModel)
+plot(transformedModel)
+pairs((completeData$Happy)^(0.75) ~ (completeData$Household)^(0.33) + (completeData$OwnHome)^2
++log(completeData$Marital)+completeData$Sex+completeData$Education+log(completeData$Income))
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
